@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台灣各縣市少子化程度</title>
+<meta name="description" content="以內政部戶政司嬰兒出生數開放資料，比較台灣各縣市、各地區歷年出生數變化與生母年齡結構。">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6f6d68;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+  --down: #c23b3a;
+  --up: #006300;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --other: #898781;
+  --neg: #e34948; --pos: #2a78d6;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5; --accent-ink: #0b0b0b; --down: #e66767; --up: #0ca30c;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --other: #898781; --neg: #e66767; --pos: #3987e5;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5; --accent-ink: #0b0b0b; --down: #e66767; --up: #0ca30c;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --other: #898781; --neg: #e66767; --pos: #3987e5;
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+a { color: var(--accent); }
+
+.banner {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+
+header.top { padding: 28px 0 16px; }
+.eyebrow { margin: 0 0 6px; color: var(--muted); font-size: 13px; letter-spacing: 0.04em; }
+h1 { margin: 0; font-size: clamp(24px, 4.2vw, 38px); line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
+h1 .hl { color: var(--down); }
+.sub { margin: 8px 0 0; color: var(--ink-2); }
+
+/* ---------- 篩選列 ---------- */
+.filters {
+  background: var(--page);
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.filters-inner { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: flex-start; }
+.fgroup { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.flabel { font-size: 12px; color: var(--muted); font-weight: 600; }
+.fyear { width: 260px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip, .seg button, .btn {
+  font: inherit; font-size: 13px; line-height: 1;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 7px 11px;
+  cursor: pointer;
+  min-height: 30px;
+}
+.chip:hover, .seg button:hover, .btn:hover { border-color: var(--axis); color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip:focus-visible, .seg button:focus-visible, .btn:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 2px; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 11px; min-height: 26px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+.county-hint { font-size: 12px; color: var(--muted); }
+.btn.reset { align-self: flex-end; border-radius: 8px; }
+.fcounty { flex: 1 1 320px; }
+
+/* 雙滑桿 */
+.range { position: relative; height: 28px; }
+.range .track { position: absolute; left: 9px; right: 9px; top: 12px; height: 4px; border-radius: 2px; background: var(--grid); }
+.range .fill { position: absolute; top: 0; height: 4px; border-radius: 2px; background: var(--accent); }
+.range input[type=range] {
+  position: absolute; left: 0; top: 0; width: 100%; height: 28px; margin: 0;
+  background: none; pointer-events: none; -webkit-appearance: none; appearance: none;
+}
+.range input[type=range]::-webkit-slider-runnable-track { background: none; height: 28px; }
+.range input[type=range]::-moz-range-track { background: none; }
+.range input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; pointer-events: auto; cursor: grab;
+  width: 18px; height: 18px; margin-top: 5px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--accent); box-shadow: 0 0 0 2px var(--surface);
+}
+.range input[type=range]::-moz-range-thumb {
+  pointer-events: auto; cursor: grab; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--accent);
+}
+.yout { font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.yout small { color: var(--muted); }
+
+/* ---------- 指標卡 ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0 14px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.kpi { padding: 14px 16px; }
+.kpi .k-label { font-size: 13px; color: var(--ink-2); margin: 0; }
+.kpi .k-value { font-size: 28px; font-weight: 700; margin: 4px 0 2px; line-height: 1.2; }
+.kpi .k-value .unit { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+.kpi .k-note { font-size: 12.5px; color: var(--muted); margin: 0; }
+.down { color: var(--down); }
+.up { color: var(--up); }
+
+/* ---------- 圖表卡 ---------- */
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.chart-card { padding: 14px 16px 12px; display: flex; flex-direction: column; }
+.chart-head { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; }
+.chart-head h2 { margin: 0; font-size: 16px; line-height: 1.4; }
+.insight { margin: 4px 0 8px; color: var(--ink); font-size: 14px; min-height: 1.6em; }
+.insight b { font-weight: 700; }
+.chart { width: 100%; height: 340px; transition: opacity .2s; }
+.empty { display: none; padding: 40px 0; text-align: center; color: var(--muted); }
+.chart-card.is-empty .chart, .chart-card.is-empty .tablewrap { display: none; }
+.chart-card.is-empty .empty { display: block; }
+.footnote { margin: 8px 0 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; }
+details.tablewrap { margin-top: 6px; font-size: 13px; }
+details.tablewrap summary { cursor: pointer; color: var(--ink-2); font-size: 12.5px; }
+.tscroll { overflow-x: auto; max-height: 280px; overflow-y: auto; margin-top: 6px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+
+/* ---------- 頁尾 ---------- */
+footer { margin: 28px 0 40px; }
+footer .card { padding: 18px 20px; }
+footer h2 { margin: 0 0 8px; font-size: 17px; }
+footer dl { margin: 0; display: grid; grid-template-columns: 7em 1fr; gap: 6px 14px; }
+footer dt { color: var(--muted); font-weight: 600; }
+footer dd { margin: 0; color: var(--ink-2); }
+footer ul { margin: 0; padding-left: 1.2em; }
+
+@media (max-width: 1000px) {
+  .charts { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .kpis { grid-template-columns: minmax(0, 1fr); }
+  .fyear, .fgroup { width: 100%; }
+  .btn.reset { align-self: flex-start; }
+  .chart { height: 300px; }
+  footer dl { grid-template-columns: minmax(0, 1fr); }
+  footer dt { margin-top: 6px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="load-error" class="banner" role="alert" hidden></div>
+
+  <header class="top">
+    <p class="eyebrow">台灣各縣市少子化程度 · 出生數儀表板</p>
+    <h1 id="headline">載入資料中…</h1>
+    <p id="subhead" class="sub"></p>
+  </header>
+</div>
+
+<section class="filters" aria-label="篩選條件">
+  <div class="wrap filters-inner">
+    <div class="fgroup fyear">
+      <span class="flabel" id="lbl-year">年度區間</span>
+      <div class="range" role="group" aria-labelledby="lbl-year">
+        <div class="track"><div class="fill" id="yfill"></div></div>
+        <input type="range" id="y0" aria-label="起始年度" step="1">
+        <input type="range" id="y1" aria-label="結束年度" step="1">
+      </div>
+      <output class="yout" id="yout" for="y0 y1"></output>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">地區（可多選）</span>
+      <div class="chips" id="f-region" role="group" aria-label="地區"></div>
+    </div>
+    <div class="fgroup fcounty">
+      <span class="flabel">縣市（可多選）<span class="county-hint" id="county-hint"></span></span>
+      <div class="chips" id="f-county" role="group" aria-label="縣市"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">嬰兒性別</span>
+      <div class="seg" id="f-sex" role="group" aria-label="嬰兒性別"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">生母原屬國籍（至少一項）</span>
+      <div class="chips" id="f-nation" role="group" aria-label="生母原屬國籍"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">顯示方式</span>
+      <div class="seg" id="f-mode" role="group" aria-label="顯示方式"></div>
+    </div>
+    <button type="button" class="btn reset" id="reset">重設篩選</button>
+  </div>
+</section>
+
+<main class="wrap">
+  <section class="kpis" aria-label="指標">
+    <div class="card kpi"><p class="k-label">期間出生總數</p><p class="k-value" id="k1"></p><p class="k-note" id="k1n"></p></div>
+    <div class="card kpi"><p class="k-label" id="k2l">最後一年出生數</p><p class="k-value" id="k2"></p><p class="k-note" id="k2n"></p></div>
+    <div class="card kpi"><p class="k-label">首末年變化率</p><p class="k-value" id="k3"></p><p class="k-note" id="k3n"></p></div>
+    <div class="card kpi"><p class="k-label">35 歲以上高齡產婦占比</p><p class="k-value" id="k4"></p><p class="k-note" id="k4n"></p></div>
+  </section>
+
+  <section class="charts">
+    <article class="card chart-card" id="c1">
+      <div class="chart-head">
+        <h2>歷年出生數趨勢</h2>
+        <div class="seg" data-toggle="t1" aria-label="圖型">
+          <button type="button" data-v="line">折線</button><button type="button" data-v="bar">長條</button>
+        </div>
+      </div>
+      <p class="insight" aria-live="polite"></p>
+      <div class="chart" role="img" aria-label="歷年出生數趨勢圖"></div>
+      <p class="empty">此篩選條件下沒有資料，請放寬篩選。</p>
+      <details class="tablewrap"><summary>資料表</summary><div class="tscroll"></div></details>
+      <p class="footnote">依篩選條件加總每年嬰兒出生數。分開比較時，有選縣市就每個縣市一條線（超過 8 個縣市時，其餘併為「其他縣市」），沒選縣市就每個地區一條線。</p>
+    </article>
+
+    <article class="card chart-card" id="c2">
+      <div class="chart-head">
+        <h2>各縣市少子化程度排行</h2>
+        <div class="seg" data-toggle="t2" aria-label="圖型">
+          <button type="button" data-v="bar">長條</button><button type="button" data-v="dot">點</button>
+        </div>
+      </div>
+      <p class="insight" aria-live="polite"></p>
+      <div class="chart" role="img" aria-label="各縣市出生數變化率排行圖"></div>
+      <p class="empty">此篩選條件下沒有可比較的縣市（首年出生數須大於 0）。</p>
+      <details class="tablewrap"><summary>資料表</summary><div class="tscroll"></div></details>
+      <p class="footnote">變化率 =（末年出生數 − 首年出生數）÷ 首年出生數 × 100%，由跌最多排到跌最少；首年為 0 的縣市不列入。點選縣市長條可只看該縣市。</p>
+    </article>
+
+    <article class="card chart-card" id="c3">
+      <div class="chart-head">
+        <h2>指數化趨勢</h2>
+        <div class="seg" data-toggle="t3" aria-label="圖型">
+          <button type="button" data-v="line">折線</button><button type="button" data-v="bar">長條</button>
+        </div>
+      </div>
+      <p class="insight" aria-live="polite"></p>
+      <div class="chart" role="img" aria-label="各地區出生數指數化趨勢圖"></div>
+      <p class="empty">此篩選條件下沒有資料，或首年出生數為 0 無法計算指數。</p>
+      <details class="tablewrap"><summary>資料表</summary><div class="tscroll"></div></details>
+      <p class="footnote">指數 = 當年出生數 ÷ 所選區間第一年出生數 × 100，讓大小不同的地區能放在一起比較。有選縣市時改為每個縣市一條線。</p>
+    </article>
+
+    <article class="card chart-card" id="c4">
+      <div class="chart-head">
+        <h2 id="c4title">生母年齡結構</h2>
+        <div class="seg" data-toggle="t4" aria-label="圖型">
+          <button type="button" data-v="age">年齡結構</button><button type="button" data-v="county">各縣市高齡</button>
+        </div>
+      </div>
+      <p class="insight" aria-live="polite"></p>
+      <div class="chart" role="img" aria-label="生母年齡結構圖"></div>
+      <p class="empty">此篩選條件下沒有資料，請放寬篩選。</p>
+      <details class="tablewrap"><summary>資料表</summary><div class="tscroll"></div></details>
+      <p class="footnote" id="c4note"></p>
+    </article>
+  </section>
+
+  <footer>
+    <div class="card">
+      <h2>資料說明</h2>
+      <dl>
+        <dt>資料來源</dt>
+        <dd>內政部戶政司「嬰兒出生數按性別、生母原屬國籍（地區）、年齡及教育程度分（按登記）」，政府資料開放平臺 <a href="https://data.gov.tw/dataset/32945" target="_blank" rel="noopener">https://data.gov.tw/dataset/32945</a></dd>
+        <dt>資料期間</dt>
+        <dd id="period">—</dd>
+        <dt>限制</dt>
+        <dd>
+          <ul>
+            <li>統計口徑是「按登記日期」，不是按出生日期：跨年出生、隔年才登記的嬰兒會算在登記那一年。</li>
+            <li>這份資料只有出生「人數」，沒有各縣市總人口或育齡婦女人數，所以<strong>不是出生率</strong>；縣市大小不同時，請看變化率或指數，不要直接比人數。</li>
+            <li>縣市依戶籍登記地歸屬，不一定是實際出生或居住的地方；地方生育補助會影響登記地，例如雲林縣 2024 年（民國 113 年）提高生育津貼，當年登記出生數由 3,206 人增為 6,923 人，2025 年回落至 4,546 人。</li>
+            <li>生母年齡在本頁併成 6 組；「35 歲以上」= 35–39 歲 + 40 歲以上。</li>
+          </ul>
+        </dd>
+        <dt>原始資料</dt>
+        <dd>程式與原始資料（raw/，gzip 壓縮的 CSV）放在 GitHub：<a href="https://github.com/411332048-alt/tw-low-birth" target="_blank" rel="noopener">github.com/411332048-alt/tw-low-birth</a>（<a href="https://github.com/411332048-alt/tw-low-birth/tree/HEAD/raw" target="_blank" rel="noopener">下載原始資料</a>）</dd>
+      </dl>
+    </div>
+  </footer>
+</main>
+
+<script>
+  window.__loadErrors = [];
+</script>
+<script src="data.js" onerror="window.__loadErrors.push('data')"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js" onerror="window.__loadErrors.push('echarts')"></script>
+<script>
+(function () {
+  "use strict";
+
+  const errBox = document.getElementById("load-error");
+  function showError(msg) { errBox.hidden = false; errBox.textContent = msg; }
+
+  const D = window.BIRTHS;
+  if (!D) {
+    showError("找不到資料檔 data.js，請確認它和 index.html 放在同一個資料夾。");
+    document.getElementById("headline").textContent = "資料載入失敗";
+    return;
+  }
+  const hasEcharts = typeof window.echarts !== "undefined";
+  if (!hasEcharts) showError("圖表元件（ECharts）載入失敗，請確認網路連線後重新整理；指標卡仍可使用。");
+
+  // ---------- 資料 ----------
+  const dims = D.dims, ROWS = D.rows;
+  const YEARS = dims.year, YEARS_AD = dims.yearAD, NY = YEARS.length;
+  const REGIONS = dims.region, COUNTIES = dims.county, C_REGION = D.countyRegion;
+  const AGES = dims.age, NATIONS = dims.nation, SEXES = dims.sex;
+  const ELDER = new Set([AGES.indexOf("35–39"), AGES.indexOf("40歲以上")]);
+  const MAX_SERIES = 8;
+
+  const fmt = n => Math.round(n).toLocaleString("zh-TW");
+  const pct = (v, d = 1) => (v > 0 ? "+" : "") + v.toFixed(d) + "%";
+  const yLabel = i => `${YEARS_AD[i]}（民國 ${YEARS[i]}）`;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------- 狀態 ----------
+  const DEFAULT = () => ({
+    y0: 0, y1: NY - 1,
+    regions: new Set(), counties: new Set(),
+    sex: -1, nations: new Set(NATIONS.map((_, i) => i)),
+    mode: "total",
+  });
+  let S = DEFAULT();
+  const T = { t1: "line", t2: "bar", t3: "line", t4: "age" };
+  const countySlot = new Map(); // 縣市 → 顏色槽位（選取期間固定，不因排序重新上色）
+
+  function syncSlots() {
+    for (const c of [...countySlot.keys()]) if (!S.counties.has(c)) countySlot.delete(c);
+    const used = new Set(countySlot.values());
+    for (const c of [...S.counties].sort((a, b) => a - b)) {
+      if (countySlot.has(c)) continue;
+      let s = 0; while (used.has(s) && s < MAX_SERIES) s++;
+      if (s < MAX_SERIES) { countySlot.set(c, s); used.add(s); }
+    }
+  }
+
+  function effCounties() {
+    if (S.counties.size) return new Set(S.counties);
+    if (S.regions.size) return new Set(COUNTIES.map((_, i) => i).filter(i => S.regions.has(C_REGION[i])));
+    return new Set(COUNTIES.map((_, i) => i));
+  }
+
+  // 依篩選（不含年度）過濾後的列
+  function filterRows() {
+    const eff = effCounties();
+    return ROWS.filter(r => eff.has(r[1]) && (S.sex < 0 || r[2] === S.sex) && S.nations.has(r[4]));
+  }
+
+  // ---------- 色彩 ----------
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = n => cs.getPropertyValue(n).trim();
+    C = {
+      ink: v("--ink"), ink2: v("--ink-2"), muted: v("--muted"), grid: v("--grid"), axis: v("--axis"),
+      surface: v("--surface"), other: v("--other"), neg: v("--neg"), pos: v("--pos"),
+      series: [1, 2, 3, 4, 5, 6, 7, 8].map(i => v("--s" + i)),
+    };
+  }
+
+  // 分組：有選縣市 → 每個縣市（超過 8 個併為其他），否則 → 每個地區（已選或全部）
+  function groups() {
+    if (S.counties.size) {
+      const gs = [], other = { key: "other", name: "其他縣市", color: C.other, members: new Set() };
+      for (const c of [...S.counties].sort((a, b) => a - b)) {
+        if (countySlot.has(c)) gs.push({ key: "c" + c, name: COUNTIES[c], color: C.series[countySlot.get(c)], members: new Set([c]) });
+        else other.members.add(c);
+      }
+      if (other.members.size) gs.push(other);
+      return gs;
+    }
+    const regs = S.regions.size ? [...S.regions].sort((a, b) => a - b) : REGIONS.map((_, i) => i);
+    return regs.map(r => ({
+      key: "r" + r, name: REGIONS[r], color: C.series[r],
+      members: new Set(COUNTIES.map((_, i) => i).filter(i => C_REGION[i] === r)),
+    }));
+  }
+
+  // ---------- 篩選列 UI ----------
+  const $ = id => document.getElementById(id);
+  function chip(label, pressed, onClick) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    b.addEventListener("click", onClick);
+    return b;
+  }
+  function segButtons(el, items, current, onPick) {
+    el.replaceChildren(...items.map(([v, label]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = label;
+      b.setAttribute("aria-pressed", v === current ? "true" : "false");
+      b.addEventListener("click", () => onPick(v));
+      return b;
+    }));
+  }
+
+  const y0 = $("y0"), y1 = $("y1");
+  [y0, y1].forEach(el => { el.min = 0; el.max = NY - 1; });
+  function onYear(e) {
+    let a = +y0.value, b = +y1.value;
+    if (a > b) { if (e.target === y0) a = b; else b = a; }
+    S.y0 = a; S.y1 = b; update();
+  }
+  y0.addEventListener("input", onYear);
+  y1.addEventListener("input", onYear);
+
+  function renderFilters() {
+    y0.value = S.y0; y1.value = S.y1;
+    const span = NY > 1 ? NY - 1 : 1;
+    $("yfill").style.left = (S.y0 / span * 100) + "%";
+    $("yfill").style.width = ((S.y1 - S.y0) / span * 100) + "%";
+    $("yout").innerHTML = `${YEARS_AD[S.y0]} – ${YEARS_AD[S.y1]} <small>（民國 ${YEARS[S.y0]} – ${YEARS[S.y1]} 年）</small>`;
+    // 起點滑桿在最右端時要能被拖回來
+    y0.style.zIndex = S.y0 === NY - 1 ? 3 : 2; y1.style.zIndex = 2;
+
+    $("f-region").replaceChildren(...REGIONS.map((name, i) => chip(name, S.regions.has(i), () => {
+      S.regions.has(i) ? S.regions.delete(i) : S.regions.add(i);
+      if (S.regions.size) for (const c of [...S.counties]) if (!S.regions.has(C_REGION[c])) S.counties.delete(c);
+      update();
+    })));
+
+    const listed = COUNTIES.map((_, i) => i).filter(i => !S.regions.size || S.regions.has(C_REGION[i]));
+    $("f-county").replaceChildren(...listed.map(i => chip(COUNTIES[i], S.counties.has(i), () => {
+      S.counties.has(i) ? S.counties.delete(i) : S.counties.add(i);
+      update();
+    })));
+    $("county-hint").textContent = S.regions.size ? "　僅列出已選地區" : "";
+
+    segButtons($("f-sex"), [[-1, "全部"], ...SEXES.map((s, i) => [i, s])], S.sex, v => { S.sex = v; update(); });
+
+    $("f-nation").replaceChildren(...NATIONS.map((name, i) => {
+      const b = chip(name, S.nations.has(i), () => {
+        if (S.nations.has(i)) { if (S.nations.size > 1) S.nations.delete(i); }
+        else S.nations.add(i);
+        update();
+      });
+      if (S.nations.has(i) && S.nations.size === 1) b.title = "至少要保留一個國籍";
+      return b;
+    }));
+
+    segButtons($("f-mode"), [["total", "合計"], ["split", "分開比較"]], S.mode, v => { S.mode = v; update(); });
+  }
+  $("reset").addEventListener("click", () => { S = DEFAULT(); update(); });
+
+  // 卡片圖型切換鈕
+  document.querySelectorAll("[data-toggle]").forEach(seg => {
+    const key = seg.dataset.toggle;
+    seg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      if (T[key] === b.dataset.v) return;
+      T[key] = b.dataset.v; paintToggles(); renderCharts(true, key);
+    }));
+  });
+  function paintToggles() {
+    document.querySelectorAll("[data-toggle]").forEach(seg => {
+      seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", T[seg.dataset.toggle] === b.dataset.v ? "true" : "false"));
+    });
+  }
+
+  // ---------- 標題結論（全國、全期間，由資料計算） ----------
+  (function headline() {
+    const tot = new Array(NY).fill(0);
+    for (const r of ROWS) tot[r[0]] += r[6];
+    const ch = (tot[NY - 1] - tot[0]) / tot[0] * 100;
+    const word = ch < 0 ? "減少" : "增加";
+    $("headline").innerHTML = `${YEARS_AD[0]}→${YEARS_AD[NY - 1]} 全國出生數${word} <span class="hl">${Math.abs(ch).toFixed(1)}%</span>`;
+    $("subhead").textContent = `從 ${fmt(tot[0])} 人降到 ${fmt(tot[NY - 1])} 人（民國 ${YEARS[0]}–${YEARS[NY - 1]} 年，按登記）。下方可依年度、地區、縣市、性別與生母國籍篩選。`;
+    if (ch >= 0) $("subhead").textContent = $("subhead").textContent.replace("降到", "變為");
+    $("period").textContent = `西元 ${YEARS_AD[0]}–${YEARS_AD[NY - 1]} 年（民國 ${YEARS[0]}–${YEARS[NY - 1]} 年），共 ${NY} 年。`;
+  })();
+
+  // ---------- 計算 ----------
+  function compute() {
+    const rows = filterRows();
+    const yearTot = new Array(NY).fill(0), yearElder = new Array(NY).fill(0);
+    for (const r of rows) { yearTot[r[0]] += r[6]; if (ELDER.has(r[3])) yearElder[r[0]] += r[6]; }
+    const inRange = rows.filter(r => r[0] >= S.y0 && r[0] <= S.y1);
+    const total = inRange.reduce((s, r) => s + r[6], 0);
+    return { rows, inRange, yearTot, yearElder, total };
+  }
+
+  // ---------- 指標卡 ----------
+  function renderKpis(M) {
+    const a = S.y0, b = S.y1, single = a === b;
+    $("k1").innerHTML = `${fmt(M.total)}<span class="unit">人</span>`;
+    $("k1n").textContent = `${YEARS_AD[a]}–${YEARS_AD[b]} 年合計，年平均 ${fmt(M.total / (b - a + 1))} 人`;
+
+    $("k2l").textContent = `最後一年（${YEARS_AD[b]}）出生數`;
+    $("k2").innerHTML = `${fmt(M.yearTot[b])}<span class="unit">人</span>`;
+    if (b > 0 && M.yearTot[b - 1] > 0) {
+      const d = M.yearTot[b] - M.yearTot[b - 1], r = d / M.yearTot[b - 1] * 100;
+      const cls = d < 0 ? "down" : "up", arrow = d < 0 ? "▼" : "▲";
+      $("k2n").innerHTML = `比 ${YEARS_AD[b - 1]} 年 <span class="${cls}">${arrow} ${fmt(Math.abs(d))} 人（${pct(r)}）</span>`;
+    } else $("k2n").textContent = "沒有前一年資料可比較";
+
+    const f = M.yearTot[a], l = M.yearTot[b];
+    if (single) { $("k3").textContent = "—"; $("k3n").textContent = "請選擇至少兩個年度"; }
+    else if (f > 0) {
+      const r = (l - f) / f * 100;
+      $("k3").innerHTML = `<span class="${r < 0 ? "down" : "up"}">${pct(r)}</span>`;
+      $("k3n").textContent = `${YEARS_AD[a]} 年 ${fmt(f)} 人 → ${YEARS_AD[b]} 年 ${fmt(l)} 人`;
+    } else { $("k3").textContent = "—"; $("k3n").textContent = "首年出生數為 0，無法計算"; }
+
+    const sh = i => M.yearTot[i] > 0 ? M.yearElder[i] / M.yearTot[i] * 100 : null;
+    const sa = sh(a), sb = sh(b);
+    if (sb === null) { $("k4").textContent = "—"; $("k4n").textContent = "沒有資料"; }
+    else if (single || sa === null) { $("k4").innerHTML = `${sb.toFixed(1)}<span class="unit">%</span>`; $("k4n").textContent = `${YEARS_AD[b]} 年`; }
+    else {
+      $("k4").innerHTML = `${sa.toFixed(1)}% → ${sb.toFixed(1)}<span class="unit">%</span>`;
+      const d = sb - sa;
+      $("k4n").textContent = `${YEARS_AD[a]} → ${YEARS_AD[b]} 年，${d >= 0 ? "增加" : "減少"} ${Math.abs(d).toFixed(1)} 個百分點`;
+    }
+  }
+
+  // ---------- 圖表共用 ----------
+  const charts = {};
+  function card(id) { return document.getElementById(id); }
+  function setEmpty(id, empty) { card(id).classList.toggle("is-empty", empty); }
+  function setInsight(id, html) { card(id).querySelector(".insight").innerHTML = html; }
+  function setTable(id, head, body) {
+    const t = document.createElement("table");
+    const tr = document.createElement("tr");
+    head.forEach(h => { const th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
+    const thead = document.createElement("thead"); thead.appendChild(tr); t.appendChild(thead);
+    const tb = document.createElement("tbody");
+    body.forEach(row => {
+      const r = document.createElement("tr");
+      row.forEach(v => { const td = document.createElement("td"); td.textContent = v; r.appendChild(td); });
+      tb.appendChild(r);
+    });
+    t.appendChild(tb);
+    card(id).querySelector(".tscroll").replaceChildren(t);
+  }
+  function chartOf(id) {
+    if (!hasEcharts) return null;
+    if (!charts[id]) charts[id] = echarts.init(card(id).querySelector(".chart"), null, { renderer: "canvas" });
+    return charts[id];
+  }
+  function setHeight(id, px) {
+    const el = card(id).querySelector(".chart");
+    const h = px ? px + "px" : "";
+    if (el.style.height !== h) { el.style.height = h; if (charts[id]) charts[id].resize(); }
+  }
+  function apply(id, opt, morph) {
+    const ch = chartOf(id);
+    if (!ch) return;
+    // 切換圖型：notMerge 讓 universalTransition 變形；篩選變動：replaceMerge 讓同 id 的系列平滑更新
+    ch.setOption(opt, morph ? { notMerge: true } : { replaceMerge: ["series", "xAxis", "yAxis", "legend"] });
+  }
+
+  function base() {
+    return {
+      animationDuration: 600, animationDurationUpdate: 600, animationEasingUpdate: "cubicOut",
+      textStyle: { fontFamily: getComputedStyle(document.body).fontFamily, color: C.ink2 },
+      grid: { id: "g", left: 8, right: 20, top: 44, bottom: 30, containLabel: true },
+      tooltip: {
+        backgroundColor: C.surface, borderColor: C.axis, borderWidth: 1,
+        textStyle: { color: C.ink, fontSize: 13 }, extraCssText: "box-shadow:0 2px 8px rgba(0,0,0,.12);border-radius:8px;",
+      },
+    };
+  }
+  function legend(names, show) {
+    return { id: "lg", show, type: "scroll", top: 0, left: 0, right: 0, icon: "roundRect", itemWidth: 14, itemHeight: 4,
+      textStyle: { color: C.ink2, fontSize: 12 }, data: names, pageTextStyle: { color: C.muted } };
+  }
+  function valueAxis(id, name, extra) {
+    return Object.assign({
+      id, type: "value", name, nameTextStyle: { color: C.muted, fontSize: 12, align: "left" },
+      axisLabel: { color: C.muted, fontSize: 12 }, splitLine: { lineStyle: { color: C.grid, type: "solid" } },
+      axisLine: { show: false }, axisTick: { show: false },
+    }, extra || {});
+  }
+  function catAxis(id, data, name, extra) {
+    return Object.assign({
+      id, type: "category", data, name, nameTextStyle: { color: C.muted, fontSize: 12 },
+      axisLabel: { color: C.muted, fontSize: 12 }, axisLine: { lineStyle: { color: C.axis } }, axisTick: { show: false },
+    }, extra || {});
+  }
+  function tipRows(params, fmtVal) {
+    return params.map(p => `<div style="display:flex;align-items:center;gap:8px;line-height:1.7">` +
+      `<span style="display:inline-block;width:12px;height:3px;border-radius:2px;background:${p.color}"></span>` +
+      `<b style="min-width:5em">${fmtVal(p.value)}</b><span style="color:${C.ink2}">${esc(p.seriesName)}</span></div>`).join("");
+  }
+  function yearTip(fmtVal) {
+    return params => {
+      const ps = Array.isArray(params) ? params : [params];
+      const i = S.y0 + ps[0].dataIndex;
+      const sorted = [...ps].sort((x, y) => (y.value ?? -Infinity) - (x.value ?? -Infinity));
+      return `<div style="color:${C.ink2};margin-bottom:2px">${yLabel(i)}</div>` + tipRows(sorted, fmtVal);
+    };
+  }
+  function seriesFor(type, id, name, data, color, extra) {
+    const s = { id, name, type, data, color, universalTransition: { enabled: true }, emphasis: { focus: "series" } };
+    if (type === "line") Object.assign(s, { symbol: "circle", symbolSize: 8, showSymbol: true, lineStyle: { width: 2 },
+      itemStyle: { borderColor: C.surface, borderWidth: 2 } });
+    else Object.assign(s, { barMaxWidth: 28, barGap: "12%", itemStyle: { borderRadius: [4, 4, 0, 0] } });
+    return Object.assign(s, extra || {});
+  }
+
+  // 依分組逐年加總
+  function groupYearly(M, gs) {
+    const gOf = new Map();
+    gs.forEach((g, gi) => g.members.forEach(c => gOf.set(c, gi)));
+    const n = S.y1 - S.y0 + 1;
+    const out = gs.map(() => new Array(n).fill(0));
+    for (const r of M.inRange) { const gi = gOf.get(r[1]); if (gi !== undefined) out[gi][r[0] - S.y0] += r[6]; }
+    return out;
+  }
+  const yearCats = () => YEARS_AD.slice(S.y0, S.y1 + 1).map(String);
+
+  // ---------- 圖 1：歷年出生數趨勢 ----------
+  function chart1(M, morph) {
+    const id = "c1", type = T.t1, n = S.y1 - S.y0 + 1;
+    if (M.total === 0) { setEmpty(id, true); setInsight(id, ""); return; }
+    setEmpty(id, false);
+    const cats = yearCats();
+    let series, names = [], tableHead, tableBody;
+    if (S.mode === "split") {
+      const gs = groups(), vals = groupYearly(M, gs);
+      series = gs.map((g, gi) => seriesFor(type, "g-" + g.key, g.name, vals[gi], g.color));
+      names = gs.map(g => g.name);
+      tableHead = ["年", ...names];
+      tableBody = cats.map((y, i) => [y, ...vals.map(v => fmt(v[i]))]);
+      const ch = gs.map((g, gi) => ({ name: g.name, r: vals[gi][0] > 0 ? (vals[gi][n - 1] - vals[gi][0]) / vals[gi][0] * 100 : null }))
+        .filter(x => x.r !== null).sort((x, y) => x.r - y.r);
+      if (n > 1 && ch.length > 1) setInsight(id, `${cats[0]}→${cats[n - 1]} 跌幅最大的是 <b>${esc(ch[0].name)}（${pct(ch[0].r)}）</b>，最小的是 ${esc(ch[ch.length - 1].name)}（${pct(ch[ch.length - 1].r)}）。`);
+      else if (n > 1 && ch.length === 1) setInsight(id, `${esc(ch[0].name)} ${cats[0]}→${cats[n - 1]} 出生數變化 <b>${pct(ch[0].r)}</b>。`);
+      else setInsight(id, `${cats[0]} 年各組出生數如圖。`);
+    } else {
+      const vals = M.yearTot.slice(S.y0, S.y1 + 1);
+      series = [seriesFor(type, "total", "出生數", vals, C.series[0])];
+      tableHead = ["年", "出生數（人）"];
+      tableBody = cats.map((y, i) => [y, fmt(vals[i])]);
+      const minI = vals.indexOf(Math.min(...vals));
+      if (n > 1) {
+        const r = vals[0] > 0 ? (vals[n - 1] - vals[0]) / vals[0] * 100 : null;
+        setInsight(id, `出生數由 ${cats[0]} 年 ${fmt(vals[0])} 人${r === null ? "" : (r < 0 ? "降" : "升")}至 ${cats[n - 1]} 年 <b>${fmt(vals[n - 1])} 人${r === null ? "" : `（${pct(r)}）`}</b>，最低點在 ${cats[minI]} 年。`);
+      } else setInsight(id, `${cats[0]} 年出生數 <b>${fmt(vals[0])} 人</b>。`);
+    }
+    setTable(id, tableHead, tableBody);
+    apply(id, Object.assign(base(), {
+      legend: legend(names, names.length > 1),
+      grid: { id: "g", left: 8, right: 20, top: names.length > 1 ? 72 : 44, bottom: 30, containLabel: true },
+      tooltip: Object.assign(base().tooltip, { trigger: "axis", axisPointer: { type: type === "line" ? "line" : "shadow", lineStyle: { color: C.axis } }, formatter: yearTip(v => fmt(v) + " 人") }),
+      xAxis: catAxis("x", cats, "年（西元）", { nameLocation: "middle", nameGap: 28, boundaryGap: type === "bar" }),
+      yAxis: valueAxis("y", "出生數（人）", { axisLabel: { color: C.muted, fontSize: 12, formatter: v => v >= 10000 ? (v / 10000) + " 萬" : fmt(v) } }),
+      series,
+    }), morph);
+  }
+
+  // ---------- 圖 2：各縣市少子化程度排行 ----------
+  function chart2(M, morph) {
+    const id = "c2", a = S.y0, b = S.y1, type = T.t2;
+    const eff = [...effCounties()];
+    const f = new Map(), l = new Map();
+    for (const r of M.rows) {
+      if (r[0] === a) f.set(r[1], (f.get(r[1]) || 0) + r[6]);
+      if (r[0] === b) l.set(r[1], (l.get(r[1]) || 0) + r[6]);
+    }
+    const items = eff.filter(c => (f.get(c) || 0) > 0).map(c => ({
+      c, name: COUNTIES[c], first: f.get(c), last: l.get(c) || 0,
+      r: ((l.get(c) || 0) - f.get(c)) / f.get(c) * 100,
+    })).sort((x, y) => x.r - y.r);
+    if (a === b || !items.length) {
+      setEmpty(id, true);
+      card(id).querySelector(".empty").textContent = a === b ? "請選擇至少兩個年度才能計算變化率。" : "此篩選條件下沒有可比較的縣市（首年出生數須大於 0）。";
+      setInsight(id, ""); setHeight(id, null); return;
+    }
+    setEmpty(id, false);
+    setHeight(id, Math.max(220, items.length * 26 + 70));
+    const lo = items[0], hi = items[items.length - 1];
+    const skipped = eff.length - items.length;
+    setInsight(id, (items.length > 1
+      ? `${YEARS_AD[a]}→${YEARS_AD[b]} 跌幅最大的是 <b>${esc(lo.name)}（${pct(lo.r)}）</b>，${hi.r < 0 ? "跌最少" : "表現最好"}的是 ${esc(hi.name)}（${pct(hi.r)}）。`
+      : `${esc(lo.name)} ${YEARS_AD[a]}→${YEARS_AD[b]} 出生數變化 <b>${pct(lo.r)}</b>。`) +
+      (skipped ? `<span style="color:${C.muted}">（${skipped} 個縣市首年為 0，未列入）</span>` : ""));
+    setTable(id, ["縣市", `${YEARS_AD[a]} 年`, `${YEARS_AD[b]} 年`, "變化率"], items.map(x => [x.name, fmt(x.first), fmt(x.last), pct(x.r)]));
+
+    const data = items.map(x => ({
+      value: +x.r.toFixed(2), name: x.name,
+      itemStyle: { color: x.r < 0 ? C.neg : C.pos, borderRadius: type === "bar" ? (x.r < 0 ? [4, 0, 0, 4] : [0, 4, 4, 0]) : 0 },
+    }));
+    const s = type === "bar"
+      ? { id: "rank", type: "bar", name: "變化率", data, barMaxWidth: 16, universalTransition: { enabled: true },
+          label: { show: true, position: "outside", color: C.ink2, fontSize: 11, formatter: p => pct(p.value) }, cursor: "pointer" }
+      : { id: "rank", type: "scatter", name: "變化率", data, symbolSize: 11, universalTransition: { enabled: true },
+          itemStyle: { borderColor: C.surface, borderWidth: 2 },
+          label: { show: true, position: "right", color: C.ink2, fontSize: 11, formatter: p => pct(p.value) }, cursor: "pointer" };
+    const minV = Math.min(0, ...items.map(x => x.r)), maxV = Math.max(0, ...items.map(x => x.r));
+    apply(id, Object.assign(base(), {
+      grid: { id: "g", left: 8, right: 56, top: 12, bottom: 34, containLabel: true },
+      legend: legend([], false),
+      tooltip: Object.assign(base().tooltip, { trigger: "item", formatter: p => {
+        const x = items.find(it => it.name === p.name); if (!x) return "";
+        return `<div style="color:${C.ink2}">${esc(x.name)}</div><b>${pct(x.r)}</b><div style="color:${C.ink2};font-size:12px">${YEARS_AD[a]} 年 ${fmt(x.first)} 人 → ${YEARS_AD[b]} 年 ${fmt(x.last)} 人<br>點一下只看這個縣市</div>`;
+      } }),
+      xAxis: valueAxis("x", "變化率（%）", { nameLocation: "middle", nameGap: 26, position: "bottom",
+        min: minV < 0 ? Math.floor((minV - 14) / 10) * 10 : 0, max: maxV > 0 ? Math.ceil((maxV + 14) / 10) * 10 : 0,
+        axisLabel: { color: C.muted, fontSize: 12, formatter: v => v + "%" },
+        nameTextStyle: { color: C.muted, fontSize: 12 } }),
+      yAxis: catAxis("y", items.map(x => x.name), "", { inverse: true, axisLine: { show: false },
+        splitLine: { show: type === "dot", lineStyle: { color: C.grid } } }),
+      series: [s],
+    }), morph);
+  }
+
+  // ---------- 圖 3：指數化趨勢 ----------
+  function chart3(M, morph) {
+    const id = "c3", type = T.t3, n = S.y1 - S.y0 + 1;
+    if (M.total === 0) { setEmpty(id, true); setInsight(id, ""); return; }
+    const gs = groups(), vals = groupYearly(M, gs);
+    const ok = gs.map((g, gi) => ({ g, v: vals[gi] })).filter(x => x.v[0] > 0);
+    if (!ok.length) { setEmpty(id, true); setInsight(id, ""); return; }
+    setEmpty(id, false);
+    const cats = yearCats();
+    const idx = ok.map(x => x.v.map(v => +(v / x.v[0] * 100).toFixed(1)));
+    const names = ok.map(x => x.g.name);
+    const series = ok.map((x, i) => seriesFor(type, "i-" + x.g.key, x.g.name, idx[i], x.g.color));
+    if (n > 1) {
+      const end = ok.map((x, i) => ({ name: x.g.name, v: idx[i][n - 1] })).sort((p, q) => p.v - q.v);
+      setInsight(id, end.length > 1
+        ? `以 ${cats[0]} 年 = 100，${cats[n - 1]} 年指數最低的是 <b>${esc(end[0].name)}（${end[0].v.toFixed(1)}）</b>，最高的是 ${esc(end[end.length - 1].name)}（${end[end.length - 1].v.toFixed(1)}）。`
+        : `以 ${cats[0]} 年 = 100，${esc(end[0].name)} ${cats[n - 1]} 年指數為 <b>${end[0].v.toFixed(1)}</b>。`);
+    } else setInsight(id, "只選一個年度時，所有指數都是 100；請拉開年度區間。");
+    const skipped = gs.length - ok.length;
+    if (skipped) card(id).querySelector(".insight").insertAdjacentHTML("beforeend", `<span style="color:${C.muted}">（${skipped} 組首年為 0，未列入）</span>`);
+    setTable(id, ["年", ...names], cats.map((y, i) => [y, ...idx.map(v => v[i].toFixed(1))]));
+    apply(id, Object.assign(base(), {
+      legend: legend(names, names.length > 1),
+      grid: { id: "g", left: 8, right: 20, top: names.length > 1 ? 72 : 44, bottom: 30, containLabel: true },
+      tooltip: Object.assign(base().tooltip, { trigger: "axis", axisPointer: { type: type === "line" ? "line" : "shadow", lineStyle: { color: C.axis } }, formatter: yearTip(v => (+v).toFixed(1)) }),
+      xAxis: catAxis("x", cats, "年（西元）", { nameLocation: "middle", nameGap: 28, boundaryGap: type === "bar" }),
+      yAxis: valueAxis("y", "指數（首年 = 100）", { scale: type === "line", min: type === "bar" ? 0 : null }),
+      series: series.map((s, i) => i === 0 ? Object.assign(s, {
+        markLine: { silent: true, symbol: "none", data: [{ yAxis: 100 }], lineStyle: { color: C.axis, type: "solid", width: 1 },
+          label: { show: true, position: "insideStartTop", formatter: "100", color: C.muted, fontSize: 11 } },
+      }) : s),
+    }), morph);
+  }
+
+  // ---------- 圖 4：生母年齡結構 ----------
+  function chart4(M, morph) {
+    const id = "c4", a = S.y0, b = S.y1;
+    $("c4note").textContent = T.t4 === "age"
+      ? "占比 = 該年齡組出生數 ÷ 當年出生數 × 100%，比較所選區間首年與末年。生母年齡併為 6 組。"
+      : `高齡產婦占比 = 末年（${YEARS_AD[b]}）生母 35 歲以上的出生數 ÷ 該縣市當年出生數 × 100%，由高到低排列。`;
+    $("c4title").textContent = T.t4 === "age" ? "生母年齡結構" : "各縣市高齡產婦（35 歲以上）占比";
+    if (M.total === 0 || M.yearTot[b] === 0) { setEmpty(id, true); setInsight(id, ""); setHeight(id, null); return; }
+    setEmpty(id, false);
+
+    if (T.t4 === "age") {
+      setHeight(id, null);
+      const byAge = y => { const v = new Array(AGES.length).fill(0); for (const r of M.rows) if (r[0] === y) v[r[3]] += r[6]; return v; };
+      const fv = byAge(a), lv = byAge(b);
+      const share = (v, t) => v.map(x => t > 0 ? +(x / t * 100).toFixed(2) : 0);
+      const fs = share(fv, M.yearTot[a]), ls = share(lv, M.yearTot[b]);
+      const single = a === b;
+      const series = [];
+      if (!single && M.yearTot[a] > 0) series.push(seriesFor("bar", "first", `${YEARS_AD[a]} 年`, fs, C.series[0]));
+      series.push(seriesFor("bar", "last", `${YEARS_AD[b]} 年`, ls, single ? C.series[0] : C.series[1]));
+      const names = series.map(s => s.name);
+      const e = i => (M.yearTot[i] > 0 ? M.yearElder[i] / M.yearTot[i] * 100 : 0);
+      const peak = ls.indexOf(Math.max(...ls));
+      setInsight(id, single || M.yearTot[a] === 0
+        ? `${YEARS_AD[b]} 年生母以 <b>${AGES[peak]} 歲</b>最多（${ls[peak].toFixed(1)}%），35 歲以上占 ${e(b).toFixed(1)}%。`
+        : `35 歲以上產婦占比由 ${YEARS_AD[a]} 年 ${e(a).toFixed(1)}% ${e(b) >= e(a) ? "升" : "降"}至 <b>${YEARS_AD[b]} 年 ${e(b).toFixed(1)}%</b>；末年以 ${AGES[peak]} 歲最多。`);
+      setTable(id, ["生母年齡", ...names], AGES.map((g, i) => [g, ...series.map(s => s.data[i].toFixed(1) + "%")]));
+      apply(id, Object.assign(base(), {
+        legend: legend(names, names.length > 1),
+      grid: { id: "g", left: 8, right: 20, top: names.length > 1 ? 72 : 44, bottom: 30, containLabel: true },
+        tooltip: Object.assign(base().tooltip, { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ps => {
+          const i = ps[0].dataIndex;
+          return `<div style="color:${C.ink2};margin-bottom:2px">生母 ${AGES[i]}${/歲/.test(AGES[i]) ? "" : " 歲"}</div>` + tipRows(ps, v => (+v).toFixed(1) + "%");
+        } }),
+        xAxis: catAxis("x", AGES, "生母年齡（歲）", { nameLocation: "middle", nameGap: 28 }),
+        yAxis: valueAxis("y", "占比（%）", { axisLabel: { color: C.muted, fontSize: 12, formatter: v => v + "%" } }),
+        series,
+      }), morph);
+    } else {
+      const t = new Map(), e = new Map();
+      for (const r of M.rows) if (r[0] === b) { t.set(r[1], (t.get(r[1]) || 0) + r[6]); if (ELDER.has(r[3])) e.set(r[1], (e.get(r[1]) || 0) + r[6]); }
+      const items = [...t.keys()].filter(c => t.get(c) > 0).map(c => ({ name: COUNTIES[c], v: (e.get(c) || 0) / t.get(c) * 100, n: t.get(c), e: e.get(c) || 0 }))
+        .sort((x, y) => y.v - x.v);
+      setHeight(id, Math.max(220, items.length * 26 + 70));
+      const all = M.yearElder[b] / M.yearTot[b] * 100;
+      setInsight(id, items.length > 1
+        ? `${YEARS_AD[b]} 年高齡產婦占比最高的是 <b>${esc(items[0].name)}（${items[0].v.toFixed(1)}%）</b>，最低的是 ${esc(items[items.length - 1].name)}（${items[items.length - 1].v.toFixed(1)}%）；所選範圍整體 ${all.toFixed(1)}%。`
+        : `${YEARS_AD[b]} 年 ${esc(items[0].name)} 高齡產婦占比 <b>${items[0].v.toFixed(1)}%</b>。`);
+      setTable(id, ["縣市", "35 歲以上（人）", "出生數（人）", "占比"], items.map(x => [x.name, fmt(x.e), fmt(x.n), x.v.toFixed(1) + "%"]));
+      apply(id, Object.assign(base(), {
+        grid: { id: "g", left: 8, right: 52, top: 12, bottom: 34, containLabel: true },
+        legend: legend([], false),
+        tooltip: Object.assign(base().tooltip, { trigger: "item", formatter: p => {
+          const x = items.find(it => it.name === p.name); if (!x) return "";
+          return `<div style="color:${C.ink2}">${esc(x.name)}・${YEARS_AD[b]} 年</div><b>${x.v.toFixed(1)}%</b><div style="color:${C.ink2};font-size:12px">35 歲以上 ${fmt(x.e)} 人／共 ${fmt(x.n)} 人</div>`;
+        } }),
+        xAxis: valueAxis("x", "高齡產婦占比（%）", { nameLocation: "middle", nameGap: 26, min: 0,
+          axisLabel: { color: C.muted, fontSize: 12, formatter: v => v + "%" }, nameTextStyle: { color: C.muted, fontSize: 12 } }),
+        yAxis: catAxis("y", items.map(x => x.name), "", { inverse: true, axisLine: { show: false } }),
+        series: [{ id: "last", type: "bar", name: "高齡產婦占比", data: items.map(x => +x.v.toFixed(2)), color: C.series[0], barMaxWidth: 16,
+          itemStyle: { borderRadius: [0, 4, 4, 0] }, universalTransition: { enabled: true },
+          label: { show: true, position: "right", color: C.ink2, fontSize: 11, formatter: p => (+p.value).toFixed(1) + "%" } }],
+      }), morph);
+    }
+  }
+
+  // ---------- 更新 ----------
+  let M = null;
+  function renderCharts(morph, only) {
+    const fns = { t1: chart1, t2: chart2, t3: chart3, t4: chart4 };
+    for (const k of Object.keys(fns)) if (!only || only === k) fns[k](M, morph);
+  }
+  function update() {
+    syncSlots();
+    renderFilters();
+    M = compute();
+    renderKpis(M);
+    renderCharts(false);
+  }
+
+  readColors();
+  paintToggles();
+  update();
+
+  if (hasEcharts) {
+    // 圖 2 連動：點縣市 → 只看該縣市
+    chartOf("c2").on("click", p => {
+      const c = COUNTIES.indexOf(p.name);
+      if (c < 0) return;
+      S.counties = new Set([c]);
+      if (S.regions.size) S.regions.add(C_REGION[c]);
+      update();
+    });
+    let rt;
+    window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => Object.values(charts).forEach(c => c.resize()), 120); });
+    // 系統深淺色切換時重新取色
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const recolor = () => { readColors(); renderCharts(true); };
+    mq.addEventListener ? mq.addEventListener("change", recolor) : mq.addListener(recolor);
+  }
+})();
+</script>
+</body>
+</html>
